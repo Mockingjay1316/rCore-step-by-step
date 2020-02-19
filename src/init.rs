@@ -9,7 +9,10 @@ pub extern "C" fn rust_main() -> ! {
     }
     println!("_start vaddr = 0x{:x}", _start as usize);
     println!("bootstacktop vaddr = 0x{:x}", bootstacktop as usize);
-    println!("hello world!");
-    panic!("you want to do nothing!");
+    crate::interrupt::init();
+    unsafe {
+        asm!("ebreak"::::"volatile");
+    }
+    panic!("end of rust_main");
     loop {}
 }
