@@ -1,6 +1,6 @@
 target := riscv64imac-unknown-none-elf
 mode := debug
-kernel := target/$(target)/$(mode)/rcore-step-by-step
+kernel := target/$(target)/$(mode)/os
 bin := target/$(target)/$(mode)/kernel.bin
 
 objdump := rust-objdump --arch-name=riscv64

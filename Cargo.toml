@@ -1,5 +1,5 @@
 [package]
-name = "rcore-step-by-step"
+name = "os"
 version = "0.1.0"
 authors = ["Cao Dingyuan <2017011417@secoder.net>"]
 edition = "2018"
