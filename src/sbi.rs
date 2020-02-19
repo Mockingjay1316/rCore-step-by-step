@@ -23,6 +23,18 @@ const SBI_REMOTE_SFENCE_VMA: usize = 6;
 const SBI_REMOTE_SFENCE_VMA_ASID: usize = 7;
 const SBI_SHUTDOWN: usize = 8;
 
+pub fn set_timer(stime_value: u64) {
+    #[cfg(target_pointer_width = "32")]
+    sbi_call(
+        SBI_SET_TIMER,
+        stime_value as usize,
+        (stime_value >> 32) as usize,
+        0,
+    );
+    #[cfg(target_pointer_width = "64")]
+    sbi_call(SBI_SET_TIMER, stime_value as usize, 0, 0);
+}
+
 pub fn console_putchar(ch: usize) {
     sbi_call(SBI_CONSOLE_PUTCHAR, ch, 0, 0);
 }
