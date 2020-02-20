@@ -43,4 +43,32 @@ pub fn console_getchar() -> usize {
     sbi_call(SBI_CONSOLE_GETCHAR, 0, 0, 0)
 }
 
-// TODO: Add more sbi_call function.
+pub fn clear_ipi() {
+    sbi_call(SBI_CLEAR_IPI, 0, 0, 0);
+}
+
+pub fn send_ipi(hart_mask: usize) {
+    sbi_call(SBI_SEND_IPI, &hart_mask as *const _ as usize, 0, 0);
+}
+
+pub fn remote_fence_i(hart_mask: usize) {
+    sbi_call(SBI_REMOTE_FENCE_I, &hart_mask as *const _ as usize, 0, 0);
+}
+
+pub fn remote_sfence_vma(hart_mask: usize, _start: usize, _size: usize) {
+    sbi_call(SBI_REMOTE_SFENCE_VMA, &hart_mask as *const _ as usize, 0, 0);
+}
+
+pub fn remote_sfence_vma_asid(hart_mask: usize, _start: usize, _size: usize, _asid: usize) {
+    sbi_call(
+        SBI_REMOTE_SFENCE_VMA_ASID,
+        &hart_mask as *const _ as usize,
+        0,
+        0,
+    );
+}
+
+pub fn shutdown() -> ! {
+    sbi_call(SBI_SHUTDOWN, 0, 0, 0);
+    unreachable!()
+}
