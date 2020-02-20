@@ -67,7 +67,7 @@ fn super_timer() {
         // 因此这是 unsafe 的，不过目前先不用管这个
         TICKS += 1;
         // 每触发 100 次时钟中断将计数清零并输出
-        if (TICKS == 100) {
+        if TICKS == 100 {
             TICKS = 0;
             println!("* 100 ticks *");
         }
