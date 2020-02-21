@@ -47,6 +47,9 @@ fn rust_trap(tf: &mut TrapFrame) {
         Trap::Exception(Exception::Breakpoint) => breakpoint(&mut tf.sepc),
         // S态时钟中断
         Trap::Interrupt(Interrupt::SupervisorTimer) => super_timer(),
+        Trap::Exception(Exception::InstructionPageFault) => page_fault(tf),
+        Trap::Exception(Exception::LoadPageFault) => page_fault(tf),
+        Trap::Exception(Exception::StorePageFault) => page_fault(tf),
         _ => panic!("undefined trap!")
     }
 }
@@ -54,6 +57,11 @@ fn rust_trap(tf: &mut TrapFrame) {
 fn breakpoint(sepc: &mut usize) {
     println!("a breakpoint set @0x{:x}", sepc);
     *sepc += 2;
+}
+
+fn page_fault(tf: &mut TrapFrame) {
+    println!("{:?} va = {:#x} instruction = {:#x}", tf.scause.cause(), tf.stval, tf.sepc);
+    panic!("page fault!");
 }
 
 fn super_timer() {
