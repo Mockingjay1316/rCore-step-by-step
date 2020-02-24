@@ -1,10 +1,12 @@
 #![no_std]
 #![feature(asm)]
 #![feature(global_asm)]
+#![feature(naked_functions)]
 #![feature(alloc_error_handler)]
-#[macro_use]
 
+#[macro_use]
 mod io;
+
 mod init;
 mod lang_items;
 mod sbi;
@@ -13,5 +15,6 @@ mod context;
 mod timer;
 mod consts;
 mod memory;
+mod process;
 
 extern crate alloc;
