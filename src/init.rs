@@ -11,11 +11,8 @@ pub extern "C" fn rust_main() -> ! {
     // get addr location from extern
     extern "C" {
         fn _start();
-        fn bootstacktop();
         fn end();
     }
-    //println!("_start vaddr = 0x{:x}", _start as usize);
-    //println!("bootstacktop vaddr = 0x{:x}", bootstacktop as usize);
     println!(
         "free physical memory paddr = [{:#x}, {:#x})",
         end as usize - KERNEL_BEGIN_VADDR + KERNEL_BEGIN_PADDR,
@@ -31,10 +28,8 @@ pub extern "C" fn rust_main() -> ! {
         ((end as usize - KERNEL_BEGIN_VADDR + KERNEL_BEGIN_PADDR) >> 12) + 1,
         PHYSICAL_MEMORY_END >> 12
     );
-    //frame_allocating_test();
-    //dynamic_allocating_test();
+    crate::process::init();
     crate::timer::init();
-    //write_readonly_test();
     panic!("end of rust_main");
 }
 
