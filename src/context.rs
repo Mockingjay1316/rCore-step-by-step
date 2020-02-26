@@ -69,7 +69,7 @@ pub struct Context {
 impl Context {
     #[naked]
     #[inline(never)]
-    pub unsafe extern "C" fn switch(&mut self, target: &mut Context) {
+    pub unsafe extern "C" fn switch(&mut self, _target: &mut Context) {
         asm!(include_str!("process/switch.asm") :::: "volatile");
     }
     pub fn null() -> Context {
@@ -84,9 +84,9 @@ impl Context {
         ContextContent::new_kernel_thread(entry, kstack_top, satp).push_at(kstack_top)
     }
     pub unsafe fn append_initial_arguments(&self, args: [usize; 3]) {
-        let contextContent = &mut *(self.content_addr as *mut ContextContent);
-        contextContent.tf.x[10] = args[0];
-        contextContent.tf.x[11] = args[1];
-        contextContent.tf.x[12] = args[2];
+        let context_content = &mut *(self.content_addr as *mut ContextContent);
+        context_content.tf.x[10] = args[0];
+        context_content.tf.x[11] = args[1];
+        context_content.tf.x[12] = args[2];
     }
 }
