@@ -1,23 +1,62 @@
 pub mod structs;
+pub mod scheduler;
+pub mod thread_pool;
+pub mod processor;
 
 use structs::Thread;
+use processor::Processor;
+use scheduler::RRScheduler;
+use thread_pool::ThreadPool;
+use alloc::boxed::Box;
+static CPU: Processor = Processor::new();
+
+pub type Tid = usize;
+pub type ExitCode = usize;
 
 #[no_mangle]
-pub extern "C" fn temp_thread(from_thread: &mut Thread, current_thread: &mut Thread) {
-    println!("I'm leaving soon, but I still want to say: Hello world!");
-    current_thread.switch_to(from_thread);
-}
-pub fn init() {
-
-    let mut boot_thread = Thread::get_boot_thread();
-    let mut temp_thread = Thread::new_kernel(temp_thread as usize);
-
-    unsafe {
-        // 对于放在堆上的数据，我只想到这种比较蹩脚的办法拿到它所在的地址...
-        temp_thread.append_initial_arguments([&*boot_thread as *const Thread as usize, &*temp_thread as *const Thread as usize, 0]);
+pub extern "C" fn hello_thread(arg: usize) -> ! {
+    println!("begin of thread {}", arg);
+    for i in 0..800 {
+        print!("{}", arg);
     }
-    boot_thread.switch_to(&mut temp_thread);
-
-    println!("switched back from temp_thread!");
+    println!("\nend  of thread {}", arg);
+    // 通知 CPU 自身已经退出
+    exit(0);
     loop {}
+}
+
+pub fn init() {
+    // 使用 Round Robin Scheduler
+    let scheduler = RRScheduler::new(1);
+    // 新建线程池
+    let thread_pool = ThreadPool::new(100, Box::new(scheduler));
+    // 新建内核线程 idle ，其入口为 Processor::idle_main
+    let idle = Thread::new_kernel(Processor::idle_main as usize);
+    // 我们需要传入 CPU 的地址作为参数
+    idle.append_initial_arguments([&CPU as *const Processor as usize, 0, 0]);
+    // 初始化 CPU
+    CPU.init(idle, Box::new(thread_pool));
+
+    // 依次新建 5 个内核线程并加入调度单元
+    for i in 0..5 {
+        CPU.add_thread({
+            let thread = Thread::new_kernel(hello_thread as usize);
+            // 传入一个编号作为参数
+            thread.append_initial_arguments([i, 0, 0]);
+            thread
+        });
+    }
+    println!("++++ setup process!   ++++");
+}
+
+pub fn tick() {
+    CPU.tick();
+}
+
+pub fn run() {
+    CPU.run();
+}
+
+pub fn exit(code: usize) {
+    CPU.exit(code);
 }
