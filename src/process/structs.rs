@@ -7,6 +7,7 @@ use crate::alloc::alloc::{
 use crate::consts::*;
 use riscv::register::satp;
 use alloc::boxed::Box;
+use super::{ Tid, ExitCode };
 
 pub struct KernelStack(usize);
 
@@ -68,4 +69,16 @@ impl Thread {
     pub fn append_initial_arguments(&self, args: [usize; 3]) {
         unsafe { self.context.append_initial_arguments(args); }
     }
+}
+
+#[derive(Clone)]
+pub enum Status {
+    // 就绪：可以运行，但是要等到 CPU 的资源分配给它
+    Ready,
+    // 正在运行
+    Running(Tid),
+    // 睡眠：当前被阻塞，要满足某些条件才能继续运行
+    Sleeping,
+    // 退出：该线程执行完毕并退出
+    Exited(ExitCode),
 }
