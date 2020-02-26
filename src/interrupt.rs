@@ -15,6 +15,7 @@ use crate::timer::{
     clock_set_next_event
 };
 use crate::context::TrapFrame;
+use crate::process::tick;
 
 global_asm!(include_str!("trap/trap.asm"));
 
@@ -67,6 +68,7 @@ fn page_fault(tf: &mut TrapFrame) {
 fn super_timer() {
     // 设置下一次时钟中断触发时间
     clock_set_next_event();
+    tick();
     unsafe {
         // 更新时钟中断触发计数
         // 注意由于 TICKS 是 static mut 的
@@ -83,4 +85,32 @@ fn super_timer() {
     // 由于一般都是在死循环内触发时钟中断
     // 因此我们同样的指令再执行一次也无妨
     // 因此不必修改 sepc
+}
+
+#[inline(always)]
+pub fn disable_and_store() -> usize {
+    let sstatus: usize;
+    unsafe {
+        // clear sstatus 的 SIE 标志位禁用异步中断
+        // 返回 clear 之前的 sstatus 状态
+        asm!("csrci sstatus, 1 << 1" : "=r"(sstatus) ::: "volatile");
+    }
+    sstatus
+}
+
+#[inline(always)]
+pub fn restore(flags: usize) {
+    unsafe {
+        // 将 sstatus 设置为 flags 的值
+        asm!("csrs sstatus, $0" :: "r"(flags) :: "volatile");
+    }
+}
+
+#[inline(always)]
+pub fn enable_and_wfi() {
+    unsafe {
+        // set sstatus 的 SIE 标志位启用异步中断
+        // 并通过 wfi 指令等待下一次异步中断的到来
+        asm!("csrsi sstatus, 1 << 1; wfi" :::: "volatile");
+    }
 }
