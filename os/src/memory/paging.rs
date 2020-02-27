@@ -20,7 +20,7 @@ use crate::memory::{
     access_pa_via_va
 };
 
-pub struct PageEntry(&'static mut PageTableEntry, Page);
+pub struct PageEntry(pub &'static mut PageTableEntry, Page);
 
 impl PageEntry {
     pub fn update(&mut self) {
@@ -135,7 +135,7 @@ impl PageTableImpl {
         // 同样注意按时刷新 TLB
         flush.flush();
     }
-    fn get_entry(&mut self, va: usize) -> Option<&mut PageEntry> {
+    pub fn get_entry(&mut self, va: usize) -> Option<&mut PageEntry> {
         // 获取虚拟页对应的页表项，以被我们封装起来的 PageEntry 的可变引用的形式
         // 于是，我们拿到了页表项，可以进行修改了！
         let page = Page::of_addr(VirtAddr::new(va));
