@@ -1,2 +1,3 @@
 /target
 **/*.rs.bk
+/src/link_user.S
