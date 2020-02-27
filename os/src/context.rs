@@ -53,6 +53,31 @@ impl ContextContent {
         };
         content
     }
+    fn new_user_thread(
+        entry: usize,
+        ustack_top: usize,
+        satp: usize
+        ) -> Self {
+        ContextContent {
+            ra: __trapret as usize,
+            satp,
+            s: [0; 12],
+            tf: {
+                let mut tf: TrapFrame = unsafe { zeroed() };
+                // 利用 __trapret 返回后设置为用户栈
+                tf.x[2] = ustack_top;
+                // 设置 sepc 从而在 sret 之后跳转到用户程序入口点
+                tf.sepc = entry;
+                tf.sstatus = sstatus::read();
+                tf.sstatus.set_spie(true);
+                tf.sstatus.set_sie(false);
+                // 设置 sstatus 的 spp 字段为 User
+                // 从而在 sret 之后 CPU 的特权级将变为 U Mode
+                tf.sstatus.set_spp(sstatus::SPP::User);
+                tf
+            }
+        }
+    }
     // 将自身压到栈上，并返回 Context
     unsafe fn push_at(self, stack_top: usize) -> Context {
         let ptr = (stack_top as *mut ContextContent).sub(1);
@@ -82,6 +107,15 @@ impl Context {
         satp: usize
         ) -> Context {
         ContextContent::new_kernel_thread(entry, kstack_top, satp).push_at(kstack_top)
+    }
+    pub unsafe fn new_user_thread(
+        entry: usize,
+        ustack_top: usize,
+        kstack_top: usize,
+        satp: usize
+        ) -> Self {
+        // 压到内核栈
+        ContextContent::new_user_thread(entry, ustack_top, satp).push_at(kstack_top)
     }
     pub unsafe fn append_initial_arguments(&self, args: [usize; 3]) {
         let context_content = &mut *(self.content_addr as *mut ContextContent);
