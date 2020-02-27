@@ -24,7 +24,7 @@ pub struct MemorySet {
 }
 
 impl MemorySet {
-    pub fn push(&mut self, start: usize, end: usize, attr: MemoryAttr, handler: impl MemoryHandler) {
+    pub fn push(&mut self, start: usize, end: usize, attr: MemoryAttr, handler: impl MemoryHandler, data: Option<(usize, usize)>) {
         // 加入一个新的给定了 handler 以及 attr 的 MemoryArea
 
         // 合法性测试
@@ -35,6 +35,11 @@ impl MemorySet {
         let area = MemoryArea::new(start, end, Box::new(handler), attr);
         // 更新本 MemorySet 的映射
         area.map(&mut self.page_table);
+        if let Some((src, length)) = data {
+            // 如果传入了数据源
+            // 交给 area 进行复制
+            area.page_copy(&mut self.page_table, src, length);
+        }
         // 更新本 MemorySet 的 MemoryArea 集合
         self.areas.push(area);
     }
@@ -80,6 +85,7 @@ impl MemorySet {
             etext as usize,
             MemoryAttr::new().set_readonly().set_execute(),
             Linear::new(offset),
+            None,
         );
         // .rodata R
         self.push(
@@ -87,20 +93,23 @@ impl MemorySet {
             erodata as usize,
             MemoryAttr::new().set_readonly(),
             Linear::new(offset),
+            None,
         );
         // .data R|W
         self.push(
             sdata as usize,
             edata as usize,
             MemoryAttr::new(),
-            Linear::new(offset)
+            Linear::new(offset),
+            None,
         );
         // .bss R|W
         self.push(
             sbss as usize,
             ebss as usize,
             MemoryAttr::new(),
-            Linear::new(offset)
+            Linear::new(offset),
+            None,
         );
         // 物理内存 R|W
         self.push(
@@ -108,6 +117,10 @@ impl MemorySet {
             access_pa_via_va(PHYSICAL_MEMORY_END),
             MemoryAttr::new(),
             Linear::new(offset),
+            None,
         );
+    }
+    pub fn token(&self) -> usize {
+        self.page_table.token()
     }
 }
