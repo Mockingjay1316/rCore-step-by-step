@@ -123,6 +123,13 @@ impl Processor {
         inner.pool.exit(tid);
         println!("thread {} exited, exit code = {}", tid, code);
 
+        // 加入这个判断
+        // 如果有一个线程正在等待当前线程运行结束
+        // 将其唤醒
+        if let Some(wait) = inner.current.as_ref().unwrap().1.wait {
+            inner.pool.wakeup(wait);
+        }
+
         // 切换到 idle 线程决定下一个运行哪个线程
         inner.current
             .as_mut()

@@ -55,6 +55,7 @@ pub struct Thread {
     pub context: Context,
     // 线程的栈
     pub kstack: KernelStack,
+    pub wait: Option<Tid>,
 }
 
 impl Thread {
@@ -65,6 +66,7 @@ impl Thread {
         Box::new(Thread {
             context: Context::null(),
             kstack: KernelStack::new_empty(),
+            wait: None,
         })
     }
     pub fn new_kernel(entry: usize) -> Box<Thread> {
@@ -72,11 +74,13 @@ impl Thread {
             let kstack_ = KernelStack::new();
             Box::new(Thread {
                 // 内核线程共享内核资源，因此用目前的 satp 即可
-                context: Context::new_kernel_thread(entry, kstack_.top(), satp::read().bits()), kstack: kstack_,
+                context: Context::new_kernel_thread(entry, kstack_.top(), satp::read().bits()),
+                kstack: kstack_,
+                wait: None,
             })
         }
     }
-    pub unsafe fn new_user(data: &[u8]) -> Box<Thread> {
+    pub unsafe fn new_user(data: &[u8], wait_thread: Option<Tid>) -> Box<Thread> {
         // 确认合法性
         let elf = ElfFile::new(data).expect("failed to analyse elf!");
 
@@ -119,6 +123,7 @@ impl Thread {
             Thread {
                 context: Context::new_user_thread(entry_addr, ustack_top, kstack.top(), vm.token()),
                 kstack: kstack,
+                wait: wait_thread,
             }
         )
     }
