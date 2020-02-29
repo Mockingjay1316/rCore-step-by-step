@@ -18,5 +18,6 @@ mod memory;
 mod process;
 mod syscall;
 mod fs;
+mod sync;
 
 extern crate alloc;
