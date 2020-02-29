@@ -43,6 +43,7 @@ pub fn init() {
     CPU.init(idle, Box::new(thread_pool));
 
     // 依次新建 5 个内核线程并加入调度单元
+    /*
     for i in 0..5 {
         CPU.add_thread({
             let thread = Thread::new_kernel(hello_thread as usize);
@@ -52,6 +53,7 @@ pub fn init() {
         });
     }
     println!("Initialized kernel thread!");
+    */
 
     let data = ROOT_INODE
         .lookup("rust/notebook")
