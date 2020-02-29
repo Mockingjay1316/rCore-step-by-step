@@ -7,17 +7,17 @@ use crate::alloc::{
 use crate::process::Tid;
 
 // 线程池每个位置的信息
-struct ThreadInfo {
+pub struct ThreadInfo {
     // 占据这个位置的线程当前运行状态
-    status: Status,
+    pub status: Status,
     // 占据这个位置的线程
-    thread: Option<Box<Thread>>,
+    pub thread: Option<Box<Thread>>,
 }
 
 pub struct ThreadPool {
     // 线程池
     // 如果一个位置是 None 表示未被线程占据
-    threads: Vec<Option<ThreadInfo>>,
+    pub threads: Vec<Option<ThreadInfo>>,
     // 调度算法
     // 这里的 dyn Scheduler 是 Trait object 语法
     // 表明 Box 里面的类型实现了 Scheduler Trait
@@ -113,5 +113,10 @@ impl ThreadPool {
         self.threads[tid] = None;
         // 通知调度器
         self.scheduler.exit(tid);
+    }
+    pub fn wakeup(&mut self, tid: Tid) {
+        let proc = self.threads[tid].as_mut().expect("thread not exist when waking up");
+        proc.status = Status::Ready;
+        self.scheduler.push(tid);
     }
 }

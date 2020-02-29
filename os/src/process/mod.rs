@@ -54,7 +54,7 @@ pub fn init() {
     println!("Initialized kernel thread!");
 
     let data = ROOT_INODE
-        .lookup("rust/hello_world")
+        .lookup("rust/notebook")
         .unwrap()
         .read_as_vec()
         .unwrap();
@@ -73,4 +73,19 @@ pub fn run() {
 
 pub fn exit(code: usize) {
     CPU.exit(code);
+}
+
+// 当前线程自动放弃 CPU 资源并进入阻塞状态
+// 线程状态： Running(Tid) -> Sleeping
+pub fn yield_now() {
+    CPU.yield_now();
+}
+// 某些条件满足，线程等待 CPU 资源从而继续执行
+// 线程状态： Sleeping -> Ready
+pub fn wake_up(tid: Tid) {
+    CPU.wake_up(tid);
+}
+// 获取当前线程的 Tid
+pub fn current_tid() -> usize {
+    CPU.current_tid()
 }

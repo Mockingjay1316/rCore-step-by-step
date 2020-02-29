@@ -132,4 +132,38 @@ impl Processor {
 
         loop {}
     }
+
+    pub fn yield_now(&self) {
+        let inner = self.inner();
+        if !inner.current.is_none() {
+            unsafe {
+                // 由于要进入 idle 线程，必须关闭异步中断
+                // 手动保存之前的 sstatus
+                let flags = disable_and_store();
+                let tid = inner.current.as_mut().unwrap().0;
+                let thread_info = inner.pool.threads[tid].as_mut().expect("thread not existed when yielding");
+                // 修改线程状态
+                thread_info.status = Status::Sleeping;
+                // 切换到 idle 线程
+                inner.current
+                    .as_mut()
+                    .unwrap()
+                    .1
+                    .switch_to(&mut *inner.idle);
+
+                // 从 idle 线程切换回来
+                // 恢复 sstatus
+                restore(flags);
+            }
+        }
+    }
+
+    pub fn wake_up(&self, tid: Tid) {
+        let inner = self.inner();
+        inner.pool.wakeup(tid);
+    }
+
+    pub fn current_tid(&self) -> usize {
+        self.inner().current.as_mut().unwrap().0 as usize
+    }
 }
