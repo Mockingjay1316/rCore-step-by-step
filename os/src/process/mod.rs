@@ -55,13 +55,7 @@ pub fn init() {
     println!("Initialized kernel thread!");
     */
 
-    let data = ROOT_INODE
-        .lookup("rust/notebook")
-        .unwrap()
-        .read_as_vec()
-        .unwrap();
-    let user_thread = unsafe { Thread::new_user(data.as_slice()) };
-    CPU.add_thread(user_thread);
+    execute("rust/user_shell", None);
     println!("++++ setup process!   ++++");
 }
 
@@ -90,4 +84,23 @@ pub fn wake_up(tid: Tid) {
 // 获取当前线程的 Tid
 pub fn current_tid() -> usize {
     CPU.current_tid()
+}
+
+// 返回值表示是否正常执行
+pub fn execute(path: &str, host_tid: Option<Tid>) -> bool {
+    let find_result = ROOT_INODE.lookup(path);
+    match find_result {
+        Ok(inode) => {
+            let data = inode.read_as_vec().unwrap();
+            // 这里创建用户线程时，传入 host_tid
+            let user_thread = unsafe { Thread::new_user(data.as_slice(), host_tid) };
+            CPU.add_thread(user_thread);
+            true
+        },
+        Err(_) => {
+            // 如果找不到路径字符串对应的用户程序
+            println!("command not found!");
+            false
+        }
+    }
 }
