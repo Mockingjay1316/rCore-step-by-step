@@ -2,6 +2,7 @@ enum SyscallId {
     Read = 63,
     Write = 64,
     Exit = 93,
+    Exec = 221,
 }
 
 #[inline(always)]
@@ -37,4 +38,9 @@ pub fn sys_write(ch: u8) -> i64 {
 pub fn sys_exit(code: usize) -> ! {
     sys_call(SyscallId::Exit, code, 0, 0, 0);
     loop {}
+}
+
+// 传入路径字符串的地址
+pub fn sys_exec(path: *const u8) {
+    sys_call(SyscallId::Exec, path as usize, 0, 0, 0);
 }
