@@ -2,6 +2,7 @@ mod frame_allocator;
 pub mod paging;
 pub mod memory_set;
 use frame_allocator::SEGMENT_TREE_ALLOCATOR as FRAME_ALLOCATOR;
+use riscv::register::sstatus;
 use riscv::addr::{
     // 分别为虚拟地址、物理地址、虚拟页、物理页帧
     // 非常方便，之后会经常用到
@@ -20,6 +21,9 @@ use memory_set::{
 };
 
 pub fn init(l: usize, r: usize) {
+    unsafe {
+        sstatus::set_sum();
+    }
     FRAME_ALLOCATOR.lock().init(l, r);
     init_heap();
     kernel_remap();
@@ -61,6 +65,20 @@ pub fn kernel_remap() {
         MemoryAttr::new(),
         Linear::new(PHYSICAL_MEMORY_OFFSET),
         None,
+    );
+    memory_set.push(
+        access_pa_via_va(0x0c00_2000),
+        access_pa_via_va(0x0c00_3000),
+        MemoryAttr::new(),
+        Linear::new(PHYSICAL_MEMORY_OFFSET),
+        None
+    );
+    memory_set.push(
+        access_pa_via_va(0x1000_0000),
+        access_pa_via_va(0x1000_1000),
+        MemoryAttr::new(),
+        Linear::new(PHYSICAL_MEMORY_OFFSET),
+        None
     );
     unsafe {
         memory_set.activate();
