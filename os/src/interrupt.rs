@@ -8,7 +8,8 @@ use riscv::register::{
     sepc,
     stvec,
     sscratch,
-    sstatus
+    sstatus,
+    sie
 };
 use crate::timer::{
     TICKS,
@@ -16,6 +17,7 @@ use crate::timer::{
 };
 use crate::context::TrapFrame;
 use crate::process::tick;
+use crate::memory::access_pa_via_va;
 
 global_asm!(include_str!("trap/trap.asm"));
 
@@ -33,6 +35,13 @@ pub fn init() {
         stvec::write(__alltraps as usize, stvec::TrapMode::Direct);
         // 设置 sstatus 的 SIE 位
         sstatus::set_sie();
+        // enable external interrupt
+        sie::set_sext();
+
+        // closed by OpenSBI, so we open them manually
+        // see https://github.com/rcore-os/rCore/blob/54fddfbe1d402ac1fafd9d58a0bd4f6a8dd99ece/kernel/src/arch/riscv32/board/virt/mod.rs#L4
+        init_external_interrupt();
+        enable_serial_interrupt();
     }
     println!("++++ setup interrupt! ++++");
 }
@@ -48,6 +57,7 @@ fn rust_trap(tf: &mut TrapFrame) {
         Trap::Exception(Exception::Breakpoint) => breakpoint(&mut tf.sepc),
         // S态时钟中断
         Trap::Interrupt(Interrupt::SupervisorTimer) => super_timer(),
+        Trap::Interrupt(Interrupt::SupervisorExternal) => external(),
         Trap::Exception(Exception::UserEnvCall) => syscall(tf),
         Trap::Exception(Exception::InstructionPageFault) => page_fault(tf),
         Trap::Exception(Exception::LoadPageFault) => page_fault(tf),
@@ -80,12 +90,35 @@ fn super_timer() {
         // 每触发 100 次时钟中断将计数清零并输出
         if TICKS == 100 {
             TICKS = 0;
-            println!("* 100 ticks *");
+            //println!("* 100 ticks *");
         }
     }
     // 由于一般都是在死循环内触发时钟中断
     // 因此我们同样的指令再执行一次也无妨
     // 因此不必修改 sepc
+}
+
+fn external() {
+    // 键盘属于一种串口设备，而实际上有很多种外设
+    // 这里我们只考虑串口
+    let _ = try_serial();
+}
+
+fn try_serial() -> bool {
+    // 通过 OpenSBI 获取串口输入
+    match super::io::getchar_option() {
+        Some(ch) => {
+            // 将获取到的字符输入标准输入
+            if (ch == '\r') {
+                crate::fs::stdio::STDIN.push('\n');
+            }
+            else {
+                crate::fs::stdio::STDIN.push(ch);
+            }
+            true
+        },
+        None => false
+    }
 }
 
 fn syscall(tf: &mut TrapFrame) {
@@ -125,4 +158,16 @@ pub fn enable_and_wfi() {
         // 并通过 wfi 指令等待下一次异步中断的到来
         asm!("csrsi sstatus, 1 << 1; wfi" :::: "volatile");
     }
+}
+
+pub unsafe fn init_external_interrupt() {
+    let HART0_S_MODE_INTERRUPT_ENABLES: *mut u32 = access_pa_via_va(0x0c00_2080) as *mut u32;
+    const SERIAL: u32 = 0xa;
+    HART0_S_MODE_INTERRUPT_ENABLES.write_volatile(1 << SERIAL);
+}
+
+pub unsafe fn enable_serial_interrupt() {
+    let UART16550: *mut u8 = access_pa_via_va(0x10000000) as *mut u8;
+    UART16550.add(4).write_volatile(0x0B);
+    UART16550.add(1).write_volatile(0x01);
 }

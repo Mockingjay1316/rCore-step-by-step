@@ -3,6 +3,23 @@ use core::fmt::{ self, Write };
 
 struct Stdout;
 
+pub fn getchar() -> char {
+    let c = sbi::console_getchar() as u8;
+
+    match c {
+        255 => '\0',
+        c => c as char
+    }
+}
+// 调用 OpenSBI 接口
+pub fn getchar_option() -> Option<char> {
+    let c = sbi::console_getchar() as isize;
+    match c {
+        -1 => None,
+        c => Some(c as u8 as char)
+    }
+}
+
 // 输出一个字符
 pub fn putchar(ch: char) {
     sbi::console_putchar(ch as u8 as usize);
